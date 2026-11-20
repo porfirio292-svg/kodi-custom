@@ -31,19 +31,21 @@ A identificação automática em português fica ativada. Quando o fornecedor n�
 - Versão observada no `addon.xml` desse commit: `1.1.13`.
 - Dependências declaradas: `xbmc.metadata 2.1.0` e `xbmc.python 3.0.0`.
 - O add-on inclui a opção de idioma `Portuguese - Portugal` e recursos de idioma `pt_pt`.
-- A configuração de idioma do add-on upstream tem atualmente `English` como valor predefinido. Para cumprir a decisão do projeto, o pacote incluído no Kodi Custom terá de definir `Portuguese - Portugal` como predefinição, mantendo a opção alterável pelo utilizador.
+- O add-on está fixado como submódulo Git no commit `34d67a7dfe927ebf6d2a51f31c3464f217ae6f13` (versão `1.1.13`).
+- O ficheiro de definições upstream mantém-se intacto no submódulo; o projeto aplica um override de instalação em `overrides/thetvdb/resources/settings.xml` para definir `Portuguese - Portugal` como predefinição, mantendo a opção alterável.
 - A versão do upstream não deve ser considerada validada apenas por declarar dependências mínimas: ainda é necessário compilar/instalar e testar no Kodi 21.3 Omega.
 
 ## Estratégia de integração
 
 1. Manter o scraper TMDb de filmes fornecido com Kodi 21.3 Omega; a predefinição de idioma pt-PT já foi alterada na branch de desenvolvimento.
-2. Integrar o TheTVDB v4 como add-on Kodi independente, a partir do repositório oficial do respetivo projeto, preservando a estrutura, licença GPL-3.0-or-later e dependências.
-3. Fixar uma versão/commit do TheTVDB v4 no projeto, em vez de seguir automaticamente o ramo principal.
-4. A análise do CMake 21.3 Omega confirmou que a lista de add-ons empacotados pelo mecanismo `find_addon_xml_in_files` é descoberta através de `addons/*/addon.xml.in`. O TheTVDB upstream fornece `addon.xml` (não `addon.xml.in`) e um add-on Python com subpastas; por isso, copiar apenas o diretório para `addons/` não garante que seja incluído na instalação nem que os recursos sejam instalados corretamente.
-5. A integração deve usar o mecanismo de distribuição de add-ons Python adequado ao Kodi (repositório/package de add-ons ou etapa explícita de instalação no build), em vez de presumir que o CMake do core o inclui automaticamente.
-6. No pacote do TheTVDB, definir `Portuguese - Portugal` como valor inicial, mantendo a opção alterável e sem sobrescrever preferências já existentes.
-7. Definir TMDb para novas fontes de filmes e TheTVDB v4 para novas fontes de séries, sem alterar bibliotecas já existentes.
-8. Manter a possibilidade de alterar fornecedor e idioma nas definições do Kodi.
+2. Integrar o TheTVDB v4 como add-on Kodi independente, através de submódulo Git apontado ao repositório oficial e fixado no commit `34d67a7dfe927ebf6d2a51f31c3464f217ae6f13`.
+3. Incluir o caminho do submódulo em `cmake/installdata/common/addons.txt`, para os ficheiros do add-on serem copiados para os recursos instalados e incluídos na embalagem Android.
+4. Aplicar o override pt-PT após os ficheiros originais do submódulo, através de `cmake/installdata/common/thetvdb-overrides.txt`. O original upstream não é modificado.
+5. O CMake Kodi 21.3 identifica add-ons nativos com `addon.xml.in`, mas a lista de instalação de recursos (`addons.txt`) também permite incluir add-ons Python independentes com `addon.xml` normal.
+6. A cópia do repositório tem de inicializar submódulos: `git clone --recurse-submodules https://github.com/porfirio292-svg/kodi-custom.git` ou, num clone existente, `git submodule update --init --recursive`.
+7. Manter licença GPL-3.0-or-later, dependências e estrutura original do add-on.
+8. Definir TMDb para novas fontes de filmes e TheTVDB v4 para novas fontes de séries, sem alterar bibliotecas já existentes; confirmar se a seleção automática de fornecedor pode ser aplicada sem alterar bibliotecas atuais.
+9. Manter a possibilidade de alterar fornecedor e idioma nas definições do Kodi.
 
 ## Critérios de aceitação
 
