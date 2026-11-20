@@ -19,7 +19,9 @@ A identificação automática em português fica ativada. Quando o fornecedor n�
 - O Kodi 21.3 Omega já inclui o add-on oficial `metadata.themoviedb.org.python`.
 - Versão encontrada no código-base 21.3 Omega: `1.3.1+matrix.1`.
 - O scraper passa o idioma configurado à API do TMDb para pesquisa, detalhes e metadados.
-- A escolha de idioma deve ser confirmada no pacote final e testada com títulos que tenham variantes pt-PT e pt-BR.
+- O valor predefinido de `language` foi alterado de `en-US` para `pt-PT` em `resources/settings.xml` na branch `custom-development`.
+- A alteração define o idioma para instalações novas; as preferências já gravadas pelo utilizador não devem ser sobrescritas.
+- Falta validar o comportamento em instalação limpa e com títulos que tenham variantes pt-PT e pt-BR.
 
 ### Séries — TheTVDB v4
 
@@ -34,12 +36,14 @@ A identificação automática em português fica ativada. Quando o fornecedor n�
 
 ## Estratégia de integração
 
-1. Manter o scraper TMDb de filmes fornecido com Kodi 21.3 Omega.
+1. Manter o scraper TMDb de filmes fornecido com Kodi 21.3 Omega; a predefinição de idioma pt-PT já foi alterada na branch de desenvolvimento.
 2. Integrar o TheTVDB v4 como add-on Kodi independente, a partir do repositório oficial do respetivo projeto, preservando a estrutura, licença GPL-3.0-or-later e dependências.
 3. Fixar uma versão/commit do TheTVDB v4 no projeto, em vez de seguir automaticamente o ramo principal.
-4. Preparar o pacote de distribuição para disponibilizar o scraper numa instalação limpa e aplicar `Portuguese - Portugal` como idioma predefinido.
-5. Definir TMDb para novas fontes de filmes e TheTVDB v4 para novas fontes de séries, sem alterar bibliotecas já existentes.
-6. Manter a possibilidade de alterar fornecedor e idioma nas definições do Kodi.
+4. A análise do CMake 21.3 Omega confirmou que a lista de add-ons empacotados pelo mecanismo `find_addon_xml_in_files` é descoberta através de `addons/*/addon.xml.in`. O TheTVDB upstream fornece `addon.xml` (não `addon.xml.in`) e um add-on Python com subpastas; por isso, copiar apenas o diretório para `addons/` não garante que seja incluído na instalação nem que os recursos sejam instalados corretamente.
+5. A integração deve usar o mecanismo de distribuição de add-ons Python adequado ao Kodi (repositório/package de add-ons ou etapa explícita de instalação no build), em vez de presumir que o CMake do core o inclui automaticamente.
+6. No pacote do TheTVDB, definir `Portuguese - Portugal` como valor inicial, mantendo a opção alterável e sem sobrescrever preferências já existentes.
+7. Definir TMDb para novas fontes de filmes e TheTVDB v4 para novas fontes de séries, sem alterar bibliotecas já existentes.
+8. Manter a possibilidade de alterar fornecedor e idioma nas definições do Kodi.
 
 ## Critérios de aceitação
 
@@ -52,4 +56,4 @@ A identificação automática em português fica ativada. Quando o fornecedor n�
 
 ## Próximo passo
 
-Preparar o empacotamento do add-on TheTVDB v4 e a configuração inicial de idioma/fornecedor. Antes de o considerar integrado, validar instalação, dependências, pesquisa de séries, temporadas, episódios e fallback de idioma em Kodi 21.3 Omega.
+Implementar uma etapa explícita de distribuição/instalação do add-on Python TheTVDB v4 no build Android, incluindo todos os seus recursos e dependências, e validar a instalação em Kodi 21.3 Omega. Só depois definir o fornecedor por defeito para novas fontes de séries e testar pesquisa, temporadas, episódios e fallback de idioma.
