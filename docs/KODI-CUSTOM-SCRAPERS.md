@@ -56,6 +56,15 @@ A identificação automática em português fica ativada. Quando o fornecedor n�
 5. As bibliotecas existentes não são modificadas sem consentimento do utilizador.
 6. A integração é testada em Android TV/TV Box e em Android móvel.
 
+## Estado da integração no código
+
+- Submódulo oficial TheTVDB v4 criado em `addons/metadata.tvshows.thetvdb.com.v4.python`.
+- Commit do submódulo fixado: `34d67a7dfe927ebf6d2a51f31c3464f217ae6f13`.
+- Lista de instalação atualizada em `cmake/installdata/common/addons.txt`.
+- Override pt-PT criado em `overrides/thetvdb/resources/settings.xml` e aplicado após os recursos originais através de `cmake/installdata/common/thetvdb-overrides.txt`.
+- O repositório tem de ser clonado com submódulos: `git clone --recurse-submodules https://github.com/porfirio292-svg/kodi-custom.git`.
+- A integração está preparada no código-fonte, mas ainda não foi compilada nem testada numa instalação Kodi 21.3 ou numa APK Android.
+
 ## Próximo passo
 
-Implementar uma etapa explícita de distribuição/instalação do add-on Python TheTVDB v4 no build Android, incluindo todos os seus recursos e dependências, e validar a instalação em Kodi 21.3 Omega. Só depois definir o fornecedor por defeito para novas fontes de séries e testar pesquisa, temporadas, episódios e fallback de idioma.
+Validar o clone com submódulos, confirmar a cópia dos recursos no build Android, compilar e instalar a APK. Depois testar identificação de séries, temporadas, episódios e fallback de idioma. A seleção automática do TheTVDB para novas fontes deve ser implementada apenas depois de confirmar o mecanismo correto do Kodi, sem modificar bibliotecas existentes.
