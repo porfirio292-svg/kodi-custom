@@ -1,1 +1,1 @@
-overrides/thetvdb/resources/settings.xml KEEP_DIR_STRUCTURE addons/metadata.tvshows.thetvdb.com.v4.python/resources
+overrides/thetvdb/resources/settings.xml addons/metadata.tvshows.thetvdb.com.v4.python/resources
