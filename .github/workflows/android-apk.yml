@@ -1,0 +1,131 @@
+name: Build Kodi Custom Android APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      architecture:
+        description: Android architecture
+        required: true
+        default: arm64-v8a
+        type: choice
+        options:
+          - arm64-v8a
+          - armeabi-v7a
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kodi-custom-android-${{ github.ref }}-${{ inputs.architecture }}
+  cancel-in-progress: false
+
+jobs:
+  build-android:
+    name: Build APK (${{ inputs.architecture }})
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout Kodi Custom with submodules
+        uses: actions/checkout@v4
+        with:
+          ref: custom-development
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Verify source and TheTVDB submodule
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git branch --show-current)" = "custom-development"
+          test -f addons/metadata.tvshows.thetvdb.com.v4.python/addon.xml
+          test -f addons/metadata.tvshows.thetvdb.com.v4.python/resources/settings.xml
+          test -f overrides/thetvdb/resources/settings.xml
+          git submodule status --recursive
+          grep -Fxq "addons/metadata.tvshows.thetvdb.com.v4.python/*" cmake/installdata/common/addons.txt
+          grep -Fxq "overrides/thetvdb/resources/settings.xml addons/metadata.tvshows.thetvdb.com.v4.python/resources" cmake/installdata/common/thetvdb-overrides.txt
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            autoconf bison build-essential curl flex gawk git gperf \
+            lib32stdc++6 lib32z1 lib32z1-dev libcurl4-openssl-dev \
+            unzip zip zlib1g-dev
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK and NDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses
+          sdkmanager "platform-tools" "platforms;android-34" "build-tools;33.0.1" "ndk;21.4.7075529"
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/21.4.7075529" >> "$GITHUB_ENV"
+
+      - name: Create debug signing key
+        shell: bash
+        run: |
+          mkdir -p "$HOME/.android"
+          keytool -genkey -keystore "$HOME/.android/debug.keystore" -v \
+            -alias androiddebugkey \
+            -dname "CN=Android Debug,O=Android,C=US" \
+            -keypass android -storepass android -keyalg RSA -keysize 2048 -validity 10000
+
+      - name: Build Kodi dependencies
+        shell: bash
+        env:
+          ARCH: ${{ inputs.architecture }}
+        run: |
+          set -euo pipefail
+          if [ "$ARCH" = "arm64-v8a" ]; then
+            HOST="aarch64-linux-android"
+          else
+            HOST="arm-linux-androideabi"
+          fi
+          cd tools/depends
+          ./bootstrap
+          ./configure \
+            --enable-debug=no \
+            --with-tarballs="$RUNNER_TEMP/kodi-tarballs" \
+            --host="$HOST" \
+            --with-sdk-path="$ANDROID_HOME" \
+            --with-ndk-path="$ANDROID_NDK_HOME" \
+            --prefix="$RUNNER_TEMP/kodi-depends"
+          make -j2
+
+      - name: Configure Kodi build
+        run: |
+          set -euo pipefail
+          make -C tools/depends/target/cmakebuildsys BUILD_DIR="$GITHUB_WORKSPACE/kodi-build"
+
+      - name: Compile Kodi
+        run: |
+          set -euo pipefail
+          cmake --build "$GITHUB_WORKSPACE/kodi-build" --parallel 2
+
+      - name: Package APK
+        run: |
+          set -euo pipefail
+          make -C "$GITHUB_WORKSPACE/kodi-build" apk
+          find "$GITHUB_WORKSPACE" -maxdepth 3 -type f -name '*.apk' -print
+          test -n "$(find "$GITHUB_WORKSPACE" -maxdepth 3 -type f -name '*.apk' -print -quit)"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: kodi-custom-${{ inputs.architecture }}-${{ github.run_number }}
+          path: |
+            *.apk
+            images/*.apk
+            kodi-build/**/*.apk
+          if-no-files-found: error
+          retention-days: 14
